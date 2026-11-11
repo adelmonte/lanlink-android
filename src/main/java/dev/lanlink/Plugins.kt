@@ -202,6 +202,9 @@ class Plugins(private val app: App) : Host {
         dev.send(if (isUrl) Packet.of(Proto.SHARE, "url" to t) else Packet.of(Proto.SHARE, "text" to text))
     }
 
+    /** Text meant for the other clipboard: sent as text even when it looks like a link. */
+    fun sendClip(dev: Device, text: String) = dev.send(Packet.of(Proto.SHARE, "text" to text))
+
     // ---- sftp ------------------------------------------------------------------
 
     private fun startSftp(dev: Device) {

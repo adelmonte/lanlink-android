@@ -82,7 +82,7 @@ class DeviceActivity : Activity() {
                 a.button("Send clipboard") {
                     val clip = getSystemService(ClipboardManager::class.java).primaryClip
                     val text = clip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(this)?.toString()
-                    if (text.isNullOrEmpty()) toast("Clipboard is empty") else { app.plugins.sendText(d, text); toast("Sent") }
+                    if (text.isNullOrEmpty()) toast("Clipboard is empty") else { app.plugins.sendClip(d, text); toast("Sent") }
                 }
                 if (d.accepts(Proto.MOUSEPAD)) a.button("Touchpad & keyboard") { startActivity(TouchpadActivity.intent(this, id)) }
                 if (d.accepts(Proto.MPRIS_REQUEST)) a.button("Media") { startActivity(MediaActivity.intent(this, id)) }

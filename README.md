@@ -6,6 +6,8 @@ the only library is Apache MINA SSHD for the SFTP server.
 
 - **Send files, text and links** to a computer, from the app or the share sheet.
   Received files land in Downloads; received text goes to the clipboard.
+- **Clipboard on request**: select text in any app and pick *Send with lanlink*, or
+  add the **Send clipboard** quick-settings tile. Nothing syncs on its own.
 - **Let the computer browse the phone** (`lanlink mount <phone>` on the desktop).
 - **Media**: whatever plays on the computer shows up in Android's media controls,
   with a fuller remote (seek, volume, player choice) in the app.
