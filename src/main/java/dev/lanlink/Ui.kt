@@ -2,8 +2,10 @@ package dev.lanlink
 
 import android.app.Activity
 import android.content.Context
+import android.content.res.ColorStateList
 import android.graphics.Typeface
-import android.util.TypedValue
+import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.RippleDrawable
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -17,9 +19,20 @@ import android.widget.TextView
 fun Context.dp(v: Number) = (v.toFloat() * resources.displayMetrics.density).toInt()
 
 fun Context.attrColor(attr: Int): Int {
-    val tv = TypedValue()
-    theme.resolveAttribute(attr, tv, true)
-    return tv.data
+    val a = obtainStyledAttributes(intArrayOf(attr))
+    try { return a.getColor(0, 0) } finally { a.recycle() }
+}
+
+private fun Int.withAlpha(a: Int) = (this and 0x00FFFFFF) or (a shl 24)
+
+/** Rounded, tappable surface: a faint tint of the text colour, or a solid fill. */
+private fun Context.surface(radius: Int, fill: Int? = null): RippleDrawable {
+    val fg = attrColor(android.R.attr.textColorPrimary)
+    val shape = GradientDrawable().apply {
+        cornerRadius = dp(radius).toFloat()
+        setColor(fill ?: fg.withAlpha(0x1C))
+    }
+    return RippleDrawable(ColorStateList.valueOf(fg.withAlpha(0x33)), shape, shape)
 }
 
 fun Activity.scrollColumn(build: LinearLayout.() -> Unit): LinearLayout {
@@ -45,45 +58,64 @@ fun LinearLayout.text(s: CharSequence, size: Float = 16f, bold: Boolean = false,
         text = s
         textSize = size
         if (bold) typeface = Typeface.DEFAULT_BOLD
-        if (dim) alpha = 0.65f
+        setTextColor(context.attrColor(if (dim) android.R.attr.textColorSecondary else android.R.attr.textColorPrimary))
+        setLineSpacing(0f, 1.15f)
         setPadding(0, context.dp(4), 0, context.dp(4))
     }
     addView(t)
     return t
 }
 
-fun LinearLayout.button(label: String, weight: Float = 0f, onClick: () -> Unit): Button {
+/** Small accent-coloured section title. */
+fun LinearLayout.header(s: String): TextView = text(s.uppercase(), 12f, bold = true).apply {
+    setTextColor(context.attrColor(android.R.attr.colorAccent))
+    letterSpacing = 0.08f
+    setPadding(context.dp(4), context.dp(8), 0, context.dp(8))
+}
+
+fun LinearLayout.button(label: String, weight: Float = 0f, primary: Boolean = false, onClick: () -> Unit): Button {
     val b = Button(context).apply {
         text = label
         isAllCaps = false
+        textSize = 16f
+        stateListAnimator = null
+        minHeight = context.dp(52)
+        if (primary) {
+            background = context.surface(26, context.attrColor(android.R.attr.colorAccent))
+            setTextColor(0xFF1A0E00.toInt())
+            typeface = Typeface.DEFAULT_BOLD
+        } else {
+            background = context.surface(26)
+            setTextColor(context.attrColor(android.R.attr.textColorPrimary))
+        }
         setOnClickListener { onClick() }
     }
-    if (weight > 0f) addView(b, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, weight))
-    else addView(b, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+    val m = context.dp(4)
+    val lp = if (weight > 0f) LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, weight)
+    else LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+    lp.setMargins(m, m, m, m)
+    addView(b, lp)
     return b
 }
 
 fun LinearLayout.space(h: Int = 12) = addView(View(context), LinearLayout.LayoutParams(1, context.dp(h)))
 
-/** A tappable two-line row, like a settings entry. */
-fun LinearLayout.entry(title: String, subtitle: String, onClick: () -> Unit) {
+/** A tappable two-line card, like a settings entry. */
+fun LinearLayout.entry(title: String, subtitle: String, highlight: Boolean = false, onClick: () -> Unit) {
     val c = column(context) {
-        text(title, 18f)
-        text(subtitle, 14f, dim = true)
-        val pad = context.dp(12)
-        setPadding(pad, pad, pad, pad)
+        text(title, 18f, bold = true)
+        text(subtitle, 14f, dim = true).apply {
+            if (highlight) setTextColor(context.attrColor(android.R.attr.colorAccent))
+        }
+        setPadding(context.dp(18), context.dp(12), context.dp(18), context.dp(12))
         isClickable = true
         isFocusable = true
-        foreground = context.getDrawable(context.attrColorRes(android.R.attr.selectableItemBackground))
+        background = context.surface(18)
         setOnClickListener { onClick() }
     }
-    addView(c)
-}
-
-private fun Context.attrColorRes(attr: Int): Int {
-    val tv = TypedValue()
-    theme.resolveAttribute(attr, tv, true)
-    return tv.resourceId
+    val lp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+    lp.setMargins(0, context.dp(4), 0, context.dp(4))
+    addView(c, lp)
 }
 
 fun stateText(d: dev.lanlink.core.Device): String = when {

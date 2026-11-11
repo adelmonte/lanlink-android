@@ -35,7 +35,7 @@ class MainActivity : Activity() {
             space()
             setup = column(context)
             addView(setup)
-            text("Devices", 14f, bold = true, dim = true)
+            header("Devices")
             list = column(context)
             addView(list)
             space()
@@ -79,7 +79,7 @@ class MainActivity : Activity() {
             list.text("Nothing yet. Make sure lanlink is running on your computer and both are on the same Wi-Fi.", 15f, dim = true)
         }
         for (d in devs) {
-            list.entry(d.name, "${d.type} · ${stateText(d)}") { startActivity(DeviceActivity.intent(this, d.id)) }
+            list.entry(d.name, "${d.type} · ${stateText(d)}", highlight = d.paired && d.online) { startActivity(DeviceActivity.intent(this, d.id)) }
         }
     }
 

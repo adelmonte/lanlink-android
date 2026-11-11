@@ -66,13 +66,13 @@ class DeviceActivity : Activity() {
         val a = actions
         when {
             d.pair is PairState.Incoming -> {
-                a.button("Accept") { app.core.accept(d); Notify.cancelPair(this, d.id) }
+                a.button("Accept", primary = true) { app.core.accept(d); Notify.cancelPair(this, d.id) }
                 a.button("Reject") { app.core.reject(d); Notify.cancelPair(this, d.id) }
             }
             d.pair is PairState.Requested -> a.text("Waiting for ${d.name} to accept…", dim = true)
-            !d.paired && d.online -> a.button("Pair") { app.core.pair(d) }
+            !d.paired && d.online -> a.button("Pair", primary = true) { app.core.pair(d) }
             d.paired && d.online -> {
-                a.button("Send files") {
+                a.button("Send files", primary = true) {
                     startActivityForResult(
                         Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*")
                             .putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true),
