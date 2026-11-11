@@ -1,41 +1,45 @@
 # lanlink for Android
 
-Phone side of lanlink. Kotlin, plain Android SDK (no AndroidX/Compose). The
-only library is Apache MINA SSHD, for the SFTP server the desktop mounts.
+The phone side of [lanlink](https://github.com/adelmonte/lanlink), a small KDE
+Connect alternative. Plain Kotlin on the Android SDK, no AndroidX or Compose;
+the only library is Apache MINA SSHD for the SFTP server.
 
-Features:
+- **Send files, text and links** to a computer, from the app or the share sheet.
+  Received files land in Downloads; received text goes to the clipboard.
+- **Let the computer browse the phone** (`lanlink mount <phone>` on the desktop).
+- **Media**: whatever plays on the computer shows up in Android's media controls,
+  with a fuller remote (seek, volume, player choice) in the app.
+- **Touchpad and keyboard** for the computer or TV: tap to click, two-finger tap
+  for right click, two fingers to scroll, long-press then move to drag.
+- Reports battery to the computer.
 
-- Send files, text and links to a computer: **Send files** on the device page,
-  or the Android share sheet ("Send with lanlink"). Received files land in
-  **Downloads**; received text goes to the clipboard.
-- Let the computer browse the phone (`lanlink mount <phone>` on the desktop).
-  Needs "All files access", which the app asks for.
-- **Media**: control the computer's players (play/pause, skip, seek, volume).
-- **Touchpad & keyboard**: drive the computer or TV. Tap = click, two-finger
-  tap = right click, three-finger tap = middle click, two fingers scroll,
-  long-press then move = drag.
-- Reports battery to the computer (shown in the desktop TUI).
+Requires Android 10+.
 
-## Build & install
+## Install
+
+Download the APK from [Releases](https://github.com/adelmonte/lanlink-android/releases)
+and install it, or build it:
 
 ```sh
-cd android
 gradle assembleRelease          # needs the Android SDK; set sdk.dir in local.properties
 adb install -r build/outputs/apk/release/lanlink-release.apk
 ```
 
-The release build is signed with the debug key, which is fine for sideloading
-your own phone. Requires Android 10+.
+The release build is signed with a debug key, which is fine for sideloading.
 
-First run: allow notifications, tap **Allow file access** and **Keep running in
-the background** (otherwise Android kills the connection when the screen is off).
+On first run, allow notifications, then tap **Allow file access** and **Keep
+running in the background**. Without the second one Android drops the connection
+when the screen turns off.
 
 ## Tests
 
-`src/test` has an interop test that runs the Kotlin core against the real
-desktop daemon (TLS both directions, pairing both ways, file transfer):
+`src/test` runs the Kotlin core against the real desktop daemon (TLS both ways,
+pairing both ways, file transfer):
 
 ```sh
-(cd .. && cargo build --release)
-LANLINK_BIN=$PWD/../target/release/lanlink gradle testDebugUnitTest
+LANLINK_BIN=/path/to/lanlink gradle testDebugUnitTest
 ```
+
+## License
+
+GPL-3.0-or-later
