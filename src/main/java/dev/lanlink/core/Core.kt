@@ -106,6 +106,9 @@ class Core(val identity: Identity, private val trust: TrustStore, private val ho
         }
     }
 
+    /** Platform hook for socket options plain Java can't set (keepalive timing). */
+    var tune: (Socket) -> Unit = {}
+
     // ---- lifecycle -----------------------------------------------------------
 
     fun start(discovery: Boolean = true) {
@@ -184,6 +187,8 @@ class Core(val identity: Identity, private val trust: TrustStore, private val ho
 
     /** They connected to us: read their plaintext identity, then we're the TLS client. */
     private fun incoming(s: Socket) {
+        s.keepAlive = true
+        tune(s)
         s.soTimeout = 10_000
         val p = Packet.parse(readRawLine(s.getInputStream()))
         require(p.type == Proto.IDENTITY) { "expected identity, got ${p.type}" }
@@ -196,6 +201,8 @@ class Core(val identity: Identity, private val trust: TrustStore, private val ho
         val s = Socket()
         try {
             s.connect(addr, 5_000)
+            s.keepAlive = true
+            tune(s)
             s.getOutputStream().write(Packet.identity(identity, tcpPort).serialize())
             runLink(tls.server(s), pre)
         } catch (e: Exception) {

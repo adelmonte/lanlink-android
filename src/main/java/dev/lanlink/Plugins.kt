@@ -45,20 +45,28 @@ class Plugins(private val app: App) : Host {
         val receivedAt = ConcurrentHashMap<String, Long>()
     }
     val media = ConcurrentHashMap<String, Media>()
+    val nowPlaying = NowPlaying(app)
 
     override fun log(msg: String) { Log.i("lanlink", msg) }
 
     override fun changed() {
         main.post {
             listeners.forEach { it() }
-            if (LinkService.running) Notify.updateService(app, core.devices.values.count { it.online && it.paired })
+            val online = core.devices.values.count { it.online && it.paired }
+            if (LinkService.running) Notify.updateService(app, online)
+            LinkService.instance?.holdWifi(online > 0)
+            nowPlaying.update()
         }
     }
 
     override fun pairRequest(dev: Device, code: String) = Notify.pairRequest(app, dev.id, dev.name, code)
     override fun paired(dev: Device) = Notify.cancelPair(app, dev.id)
     override fun unpaired(dev: Device) { media.remove(dev.id) }
-    override fun connected(dev: Device) = sendBattery(dev)
+    override fun connected(dev: Device) {
+        sendBattery(dev)
+        // Subscribes us to player changes, so media controls work without opening the app.
+        if (dev.accepts(Proto.MPRIS_REQUEST)) dev.send(Packet.of(Proto.MPRIS_REQUEST, "requestPlayerList" to true))
+    }
 
     override fun packet(dev: Device, p: Packet) {
         when (p.type) {

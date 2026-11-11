@@ -3,8 +3,11 @@ package dev.lanlink
 import android.app.Application
 import android.content.Context
 import android.os.Build
+import android.os.ParcelFileDescriptor
 import android.provider.Settings
 import android.security.keystore.KeyGenParameterSpec
+import android.system.Os
+import android.system.OsConstants
 import android.security.keystore.KeyProperties
 import android.util.Base64
 import dev.lanlink.core.Core
@@ -37,6 +40,16 @@ class App : Application() {
         plugins = Plugins(this)
         core = Core(identity, PrefsTrust(this), plugins)
         plugins.core = core
+        core.tune = { s ->
+            // Probe an idle link after 15 s, then every 5 s, give up after 3: Linux TCP_KEEPIDLE/INTVL/CNT.
+            try {
+                ParcelFileDescriptor.fromSocket(s).use { pfd ->
+                    Os.setsockoptInt(pfd.fileDescriptor, OsConstants.IPPROTO_TCP, 4, 15)
+                    Os.setsockoptInt(pfd.fileDescriptor, OsConstants.IPPROTO_TCP, 5, 5)
+                    Os.setsockoptInt(pfd.fileDescriptor, OsConstants.IPPROTO_TCP, 6, 3)
+                }
+            } catch (e: Exception) { plugins.log("keepalive: $e") }
+        }
     }
 
     val prefs get() = getSharedPreferences("lanlink", MODE_PRIVATE)

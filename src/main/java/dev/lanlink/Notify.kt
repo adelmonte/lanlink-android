@@ -14,7 +14,9 @@ object Notify {
     const val PAIR = "pair"
     const val TRANSFER = "transfer"
     const val MISC = "misc"
+    const val MEDIA = "media"
     const val SERVICE_ID = 1
+    const val MEDIA_ID = 2
 
     fun channels(ctx: Context) {
         val nm = ctx.getSystemService(NotificationManager::class.java)
@@ -23,6 +25,7 @@ object Notify {
             NotificationChannel(PAIR, "Pair requests", NotificationManager.IMPORTANCE_HIGH),
             NotificationChannel(TRANSFER, "File transfers", NotificationManager.IMPORTANCE_LOW),
             NotificationChannel(MISC, "Pings, links and text", NotificationManager.IMPORTANCE_DEFAULT),
+            NotificationChannel(MEDIA, "Media playing on the computer", NotificationManager.IMPORTANCE_LOW),
         ))
     }
 
@@ -94,6 +97,7 @@ object Notify {
 class ActionReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, i: Intent) {
         val app = App.instance
+        if (i.action == MEDIA) return app.plugins.nowPlaying.action(i.getStringExtra("do") ?: return)
         val dev = app.core.devices[i.getStringExtra("device") ?: return] ?: return
         when (i.action) {
             ACCEPT -> app.core.accept(dev)
@@ -105,5 +109,6 @@ class ActionReceiver : BroadcastReceiver() {
     companion object {
         const val ACCEPT = "dev.lanlink.ACCEPT"
         const val REJECT = "dev.lanlink.REJECT"
+        const val MEDIA = "dev.lanlink.MEDIA"
     }
 }
