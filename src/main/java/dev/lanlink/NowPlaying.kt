@@ -60,7 +60,8 @@ class NowPlaying(private val app: App) {
         val m = app.plugins.media[cur.first] ?: return clear()
         val st = m.status[cur.second] ?: return clear()
         val received = m.receivedAt[cur.second] ?: System.currentTimeMillis()
-        val sig = "${cur.first}|${cur.second}|$received"
+        val cover = app.plugins.artFor(st.optString("albumArtUrl"))
+        val sig = "${cur.first}|${cur.second}|$received|${cover != null}"
         if (sig == shown) return
         shown = sig
         device = cur.first
@@ -81,6 +82,7 @@ class NowPlaying(private val app: App) {
                 .putString(MediaMetadata.METADATA_KEY_ARTIST, artist)
                 .putString(MediaMetadata.METADATA_KEY_ALBUM, st.optString("album"))
                 .putLong(MediaMetadata.METADATA_KEY_DURATION, if (length > 0) length else -1)
+                .putBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART, cover)
                 .build()
         )
         var actions = PlaybackState.ACTION_PLAY_PAUSE or PlaybackState.ACTION_PLAY or PlaybackState.ACTION_PAUSE
@@ -114,6 +116,7 @@ class NowPlaying(private val app: App) {
             .setContentTitle(title)
             .setContentText(artist)
             .setSubText(dev.name)
+            .setLargeIcon(cover)
             .setStyle(Notification.MediaStyle().setMediaSession(s.sessionToken).setShowActionsInCompactView(0, 1, 2))
             .addAction(button(android.R.drawable.ic_media_previous, "Previous", "Previous"))
             .addAction(

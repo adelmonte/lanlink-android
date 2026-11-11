@@ -5,6 +5,8 @@ import android.content.ClipboardManager
 import android.content.ContentValues
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.BatteryManager
 import android.os.Environment
@@ -14,6 +16,7 @@ import android.provider.MediaStore
 import android.provider.OpenableColumns
 import android.provider.Settings
 import android.util.Log
+import android.util.LruCache
 import android.webkit.MimeTypeMap
 import dev.lanlink.core.Core
 import dev.lanlink.core.Device
@@ -22,7 +25,9 @@ import dev.lanlink.core.Packet
 import dev.lanlink.core.Proto
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.ByteArrayOutputStream
 import java.io.InputStream
+import java.net.URL
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.Executors
@@ -41,6 +46,8 @@ class Plugins(private val app: App) : Host {
     /** Desktop media players, per device. */
     class Media {
         @Volatile var players: List<String> = emptyList()
+        /** Whether the computer can send covers that are files on its disk. */
+        @Volatile var sendsArt = false
         val status = ConcurrentHashMap<String, JSONObject>()
         val receivedAt = ConcurrentHashMap<String, Long>()
     }
@@ -239,13 +246,83 @@ class Plugins(private val app: App) : Host {
 
     private fun mediaUpdate(dev: Device, p: Packet) {
         val m = media.getOrPut(dev.id) { Media() }
+        if (p.bool("transferringAlbumArt")) {
+            val url = p.str("albumArtUrl") ?: return
+            worker.execute {
+                try {
+                    require(p.payloadSize in 1..MAX_ART) { "cover of ${p.payloadSize} bytes" }
+                    val out = ByteArrayOutputStream()
+                    core.receivePayload(dev, p, out)
+                    storeArt(url, out.toByteArray())
+                } catch (e: Exception) {
+                    log("album art: $e")
+                }
+            }
+            return
+        }
+        if (p.body.has("supportAlbumArtPayload")) m.sendsArt = p.bool("supportAlbumArtPayload")
         p.body.optJSONArray("playerList")?.let { a -> m.players = (0 until a.length()).map { a.getString(it) } }
         p.str("player")?.let { name ->
             val merged = m.status[name] ?: JSONObject()
             for (k in p.body.keys()) merged.put(k, p.body.get(k))
             m.status[name] = merged
             m.receivedAt[name] = System.currentTimeMillis()
+            wantArt(dev, m, name, merged.optString("albumArtUrl"))
         }
         changed()
+    }
+
+    // ---- album art -------------------------------------------------------------
+
+    private val art = object : LruCache<String, Bitmap>(6) {}
+    private val artAsked = ConcurrentHashMap.newKeySet<String>()
+
+    /** The cover for a player's `albumArtUrl`, once it has arrived. */
+    fun artFor(url: String?): Bitmap? = if (url.isNullOrEmpty()) null else art.get(url)
+
+    /** Web covers are fetched here; covers that are files on the computer are asked for. */
+    private fun wantArt(dev: Device, m: Media, player: String, url: String) {
+        if (url.isEmpty() || art.get(url) != null) return
+        val web = url.startsWith("http://") || url.startsWith("https://")
+        if (!web && !(url.startsWith("file://") && m.sendsArt)) return
+        if (!artAsked.add(url)) return
+        if (artAsked.size > 64) { artAsked.clear(); artAsked.add(url) }
+        when {
+            web -> worker.execute {
+                try {
+                    val c = URL(url).openConnection().apply { connectTimeout = 8_000; readTimeout = 8_000 }
+                    c.getInputStream().use { input ->
+                        val out = ByteArrayOutputStream()
+                        val buf = ByteArray(16 * 1024)
+                        while (true) {
+                            val n = input.read(buf)
+                            if (n < 0) break
+                            out.write(buf, 0, n)
+                            require(out.size() <= MAX_ART) { "cover too large" }
+                        }
+                        storeArt(url, out.toByteArray())
+                    }
+                } catch (e: Exception) {
+                    log("album art: $e")
+                }
+            }
+            else ->
+                dev.send(Packet.of(Proto.MPRIS_REQUEST, "player" to player, "albumArtUrl" to url))
+        }
+    }
+
+    private fun storeArt(url: String, data: ByteArray) {
+        // Decode at roughly notification size; covers can be several thousand pixels wide.
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(data, 0, data.size, bounds)
+        var sample = 1
+        while (maxOf(bounds.outWidth, bounds.outHeight) / (sample * 2) >= 512) sample *= 2
+        val bmp = BitmapFactory.decodeByteArray(data, 0, data.size, BitmapFactory.Options().apply { inSampleSize = sample }) ?: return
+        art.put(url, bmp)
+        changed()
+    }
+
+    private companion object {
+        const val MAX_ART = 16L * 1024 * 1024
     }
 }

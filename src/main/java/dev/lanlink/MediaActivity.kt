@@ -6,10 +6,13 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.Gravity
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
+import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.Spinner
 import android.widget.TextView
@@ -22,6 +25,7 @@ class MediaActivity : Activity() {
     private lateinit var id: String
     private lateinit var players: Spinner
     private lateinit var adapter: ArrayAdapter<String>
+    private lateinit var cover: ImageView
     private lateinit var trackTitle: TextView
     private lateinit var artist: TextView
     private lateinit var album: TextView
@@ -57,7 +61,14 @@ class MediaActivity : Activity() {
                 }
             }
             addView(players)
-            space(24)
+            space(16)
+            cover = ImageView(context).apply {
+                adjustViewBounds = true
+                scaleType = ImageView.ScaleType.FIT_CENTER
+                visibility = View.GONE
+            }
+            addView(cover, LinearLayout.LayoutParams(context.dp(220), context.dp(220)).apply { gravity = Gravity.CENTER_HORIZONTAL })
+            space(16)
             trackTitle = text("", 22f, bold = true)
             artist = text("", 17f)
             album = text("", 15f, dim = true)
@@ -128,8 +139,12 @@ class MediaActivity : Activity() {
             trackTitle.text = if (names.isEmpty()) "Nothing playing" else ""
             artist.text = if (names.isEmpty()) "Start a media player on the computer." else ""
             album.text = ""
+            cover.visibility = View.GONE
             return
         }
+        val art = app.plugins.artFor(st.optString("albumArtUrl"))
+        cover.setImageBitmap(art)
+        cover.visibility = if (art != null) View.VISIBLE else View.GONE
         trackTitle.text = st.optString("title").ifEmpty { st.optString("nowPlaying") }
         artist.text = st.optString("artist")
         album.text = st.optString("album")
