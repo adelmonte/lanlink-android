@@ -1,0 +1,6 @@
+<resources>
+    <color name="brand">#FFE07000</color>
+    <style name="Theme.Lanlink" parent="@android:style/Theme.DeviceDefault.DayNight">
+        <item name="android:colorAccent">@color/brand</item>
+    </style>
+</resources>
