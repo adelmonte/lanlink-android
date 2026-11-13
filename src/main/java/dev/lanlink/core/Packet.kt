@@ -23,11 +23,13 @@ object Proto {
     const val MOUSEPAD = "kdeconnect.mousepad.request"
     const val MOUSEPAD_ECHO = "kdeconnect.mousepad.echo"
     const val MOUSEPAD_KEYBOARD = "kdeconnect.mousepad.keyboardstate"
+    /** A song the phone recognized (lanlink only). */
+    const val SONG = "lanlink.song"
 
     /** What the phone accepts. */
     val INCOMING = listOf(PING, SHARE, SHARE_UPDATE, SFTP_REQUEST, MPRIS, MOUSEPAD_ECHO, MOUSEPAD_KEYBOARD)
     /** What the phone sends. */
-    val OUTGOING = listOf(PING, BATTERY, SHARE, SFTP, MPRIS_REQUEST, MOUSEPAD)
+    val OUTGOING = listOf(PING, BATTERY, SHARE, SFTP, MPRIS_REQUEST, MOUSEPAD, SONG)
 
     fun validDeviceId(id: String) = id.length in 32..38 && id.all { it.isLetterOrDigit() && it.code < 128 || it == '_' }
 

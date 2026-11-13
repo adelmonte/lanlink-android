@@ -42,6 +42,7 @@ class MainActivity : Activity() {
             row(context) {
                 button("Refresh", 1f) { LinkService.refresh(this@MainActivity) }
                 button("Add by IP", 1f) { addHost() }
+                button("Settings", 1f) { startActivity(Intent(this@MainActivity, SettingsActivity::class.java)) }
             }.also { addView(it) }
         }
     }

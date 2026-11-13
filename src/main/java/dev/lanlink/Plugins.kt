@@ -71,6 +71,7 @@ class Plugins(private val app: App) : Host {
     override fun unpaired(dev: Device) { media.remove(dev.id) }
     override fun connected(dev: Device) {
         sendBattery(dev)
+        app.songs.flush()
         // Subscribes us to player changes, so media controls work without opening the app.
         if (dev.accepts(Proto.MPRIS_REQUEST)) dev.send(Packet.of(Proto.MPRIS_REQUEST, "requestPlayerList" to true))
     }

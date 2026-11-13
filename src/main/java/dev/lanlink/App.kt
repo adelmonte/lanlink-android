@@ -31,6 +31,7 @@ class App : Application() {
     lateinit var identity: AndroidIdentity
     lateinit var plugins: Plugins
     lateinit var core: Core
+    lateinit var songs: Songs
 
     override fun onCreate() {
         super.onCreate()
@@ -40,6 +41,7 @@ class App : Application() {
         plugins = Plugins(this)
         core = Core(identity, PrefsTrust(this), plugins)
         plugins.core = core
+        songs = Songs(this)
         core.tune = { s ->
             // Probe an idle link after 15 s, then every 5 s, give up after 3: Linux TCP_KEEPIDLE/INTVL/CNT.
             try {
