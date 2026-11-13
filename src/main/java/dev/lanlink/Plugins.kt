@@ -272,6 +272,25 @@ class Plugins(private val app: App) : Host {
         changed()
     }
 
+    /** Show a play/pause as done right away; the computer's own update follows and corrects it. */
+    fun optimistic(devId: String, player: String, action: String) {
+        val m = media[devId] ?: return
+        val st = m.status[player] ?: return
+        val playing = st.optBoolean("isPlaying")
+        val next = when (action) {
+            "Play" -> true
+            "Pause", "Stop" -> false
+            "PlayPause" -> !playing
+            else -> return
+        }
+        if (next == playing) return
+        val now = System.currentTimeMillis()
+        if (playing) st.put("pos", st.optLong("pos", 0) + (now - (m.receivedAt[player] ?: now)))
+        st.put("isPlaying", next)
+        m.receivedAt[player] = now
+        changed()
+    }
+
     // ---- album art -------------------------------------------------------------
 
     private val art = object : LruCache<String, Bitmap>(6) {}

@@ -31,7 +31,12 @@ class NowPlaying(private val app: App) {
         override fun onSeekTo(pos: Long) = request("SetPosition" to pos)
     }
 
-    fun action(a: String) = request("action" to a)
+    fun action(a: String) {
+        val d = device ?: return
+        val p = player ?: return
+        app.plugins.optimistic(d, p, a)
+        request("action" to a)
+    }
 
     private fun request(vararg kv: Pair<String, Any?>) {
         val p = player ?: return

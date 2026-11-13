@@ -121,7 +121,10 @@ class MediaActivity : Activity() {
         app.core.devices[id]?.send(Packet.of(Proto.MPRIS_REQUEST, "player" to p, *kv))
     }
 
-    private fun action(a: String) = request("action" to a)
+    private fun action(a: String) {
+        player?.let { app.plugins.optimistic(id, it, a) }
+        request("action" to a)
+    }
 
     private fun media() = app.plugins.media[id]
 
